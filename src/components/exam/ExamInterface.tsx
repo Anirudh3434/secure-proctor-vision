@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Clock, User, Shield, AlertTriangle } from "lucide-react"
 import { WebcamMonitor } from "./WebcamMonitor"
 import type { ExamState, ExamConfig, Question, ExamStats, CheatingViolation, ApiQuestion } from "@/types/exam"
+import axios from "axios"
 
 interface ExamInterfaceProps {
   examState: ExamState
@@ -182,18 +183,25 @@ export function ExamInterface({ examState, config, onUpdateState }: ExamInterfac
   const getQuestion = async (questionNumber: number) => {
     setLoadingQuestion(true)
     setError(null)
-    
     try {
-      // Simulate API call with sample data
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      const questionIndex = (questionNumber - 1) % sampleQuestions.length
-      const question = sampleQuestions[questionIndex]
-      
-      setCurrentApiQuestion(question)
-      setTotalQuestions(30)
-      
-      return question
+      const response = await axios.post("https://schoozy.in/api/exam/get-question", {
+        question_number: questionNumber,
+      }, {
+        withCredentials: true,
+      })
+
+      if (response.data && response.data.success) {
+        const apiData: ApiResponse = response.data
+        setCurrentApiQuestion(apiData.question)
+
+        if (apiData.total_questions) {
+          setTotalQuestions(apiData.total_questions)
+        }
+
+        return apiData.question
+      } else {
+        throw new Error(response.data?.message || "Failed to fetch question")
+      }
     } catch (error) {
       console.error("Failed to fetch question:", error)
       setError("Failed to load question. Please try again.")
@@ -324,8 +332,20 @@ export function ExamInterface({ examState, config, onUpdateState }: ExamInterfac
 
   const saveResponse = async () => {
     if (!currentApiQuestion) return
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 200))
+
+    try {
+      const response = await axios.post("https://schoozy.in/api/exam/submit-answer", {
+        question_number: examState.currentQuestion,
+        question_id: currentApiQuestion.question_id,
+        answer: selectedAnswer !== null ? String.fromCharCode(65 + selectedAnswer) : "",
+        time_taken: 34,
+      }, {
+        withCredentials: true,
+      })
+      console.log("Response saved:", response.data)
+    } catch (error) {
+      console.error("Failed to save response:", error)
+    }
   }
 
   const handleSaveAndNext = async () => {
@@ -382,11 +402,24 @@ export function ExamInterface({ examState, config, onUpdateState }: ExamInterfac
     onUpdateState({ currentQuestion: questionNumber })
   }
 
-  const handleSubmitExam = () => {
-    onUpdateState({ isSubmitted: true })
-    setShowSubmitConfirm(false)
-    exitFullScreen()
-    alert("Exam submitted successfully!")
+  const handleSubmitExam = async () => {
+    try {
+      const response = await axios.post("https://schoozy.in/api/exam/complete-exam", {}, {
+        withCredentials: true,
+      })
+      
+      if (response.data && response.data.success) {
+        onUpdateState({ isSubmitted: true })
+        setShowSubmitConfirm(false)
+        exitFullScreen()
+        alert("Exam submitted successfully!")
+      } else {
+        throw new Error(response.data?.message || "Failed to submit exam")
+      }
+    } catch (error) {
+      console.error("Failed to submit exam:", error)
+      alert("Failed to submit exam. Please try again.")
+    }
   }
 
   const getExamStats = (): ExamStats => {

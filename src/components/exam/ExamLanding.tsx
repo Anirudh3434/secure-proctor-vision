@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { BookOpen, Clock, Shield, Camera, Monitor, User } from "lucide-react"
 import type { ExamConfig, Student } from "@/types/exam"
+import axios from "axios"
 
 interface ExamLandingProps {
   config: ExamConfig
@@ -14,11 +15,12 @@ interface ExamLandingProps {
 }
 
 export function ExamLanding({ config, onStartExam }: ExamLandingProps) {
-  const [studentName, setStudentName] = useState("")
-  const [studentId, setStudentId] = useState("")
+  const [examId, setExamId] = useState("")
   const [studentEmail, setStudentEmail] = useState("")
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [systemCheckPassed, setSystemCheckPassed] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [error, setError] = useState("")
 
   const handleSystemCheck = () => {
     // Simulate system check
@@ -27,16 +29,39 @@ export function ExamLanding({ config, onStartExam }: ExamLandingProps) {
     }, 1000)
   }
 
-  const handleStartExam = () => {
-    if (!studentName.trim() || !studentId.trim() || !studentEmail.trim() || !agreedToTerms || !systemCheckPassed) {
+  const handleStartExam = async () => {
+    if (!examId.trim() || !studentEmail.trim() || !agreedToTerms || !systemCheckPassed) {
       return
     }
 
-    onStartExam({
-      name: studentName.trim(),
-      id: studentId.trim(),
-      email: studentEmail.trim(),
-    })
+    setIsVerifying(true)
+    setError("")
+
+    try {
+      const response = await axios.get("https://schoozy.in/api/exam/verify-id", {
+        params: {
+          exam_id: examId.trim(),
+          email: studentEmail.trim(),
+        },
+        withCredentials: true,
+      })
+
+      if (response.data && response.data.success) {
+        // Cookie is set by the backend, now start the exam
+        onStartExam({
+          name: "Student", // Will be fetched from backend
+          id: examId.trim(),
+          email: studentEmail.trim(),
+        })
+      } else {
+        setError(response.data?.message || "Failed to verify exam ID")
+      }
+    } catch (error: any) {
+      console.error("Exam verification failed:", error)
+      setError(error.response?.data?.message || "Failed to verify exam ID. Please check your credentials.")
+    } finally {
+      setIsVerifying(false)
+    }
   }
 
   return (
@@ -113,25 +138,13 @@ export function ExamLanding({ config, onStartExam }: ExamLandingProps) {
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 <div>
-                  <Label htmlFor="name" className="text-foreground">Full Name</Label>
+                  <Label htmlFor="examId" className="text-foreground">Exam ID</Label>
                   <Input
-                    id="name"
+                    id="examId"
                     type="text"
-                    value={studentName}
-                    onChange={(e) => setStudentName(e.target.value)}
-                    placeholder="Enter your full name"
-                    className="bg-exam-surface-secondary border-exam-surface-secondary focus:border-exam-primary"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="studentId" className="text-foreground">Student ID</Label>
-                  <Input
-                    id="studentId"
-                    type="text"
-                    value={studentId}
-                    onChange={(e) => setStudentId(e.target.value)}
-                    placeholder="Enter your student ID"
+                    value={examId}
+                    onChange={(e) => setExamId(e.target.value)}
+                    placeholder="Enter your exam ID (e.g., E25_Math_XXXX)"
                     className="bg-exam-surface-secondary border-exam-surface-secondary focus:border-exam-primary"
                   />
                 </div>
@@ -143,10 +156,18 @@ export function ExamLanding({ config, onStartExam }: ExamLandingProps) {
                     type="email"
                     value={studentEmail}
                     onChange={(e) => setStudentEmail(e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder="Enter your registered email"
                     className="bg-exam-surface-secondary border-exam-surface-secondary focus:border-exam-primary"
                   />
                 </div>
+
+                {error && (
+                  <Alert className="border-exam-error/30 bg-exam-error/10">
+                    <AlertDescription className="text-exam-error">
+                      {error}
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -242,13 +263,13 @@ export function ExamLanding({ config, onStartExam }: ExamLandingProps) {
         <div className="mt-8 text-center">
           <Button
             onClick={handleStartExam}
-            disabled={!studentName.trim() || !studentId.trim() || !studentEmail.trim() || !agreedToTerms || !systemCheckPassed}
+            disabled={!examId.trim() || !studentEmail.trim() || !agreedToTerms || !systemCheckPassed || isVerifying}
             className="bg-gradient-primary hover:opacity-90 transition-smooth shadow-primary text-lg px-8 py-3"
           >
-            Start Secure Exam
+            {isVerifying ? "Verifying..." : "Start Secure Exam"}
           </Button>
           
-          {(!studentName.trim() || !studentId.trim() || !studentEmail.trim() || !agreedToTerms || !systemCheckPassed) && (
+          {(!examId.trim() || !studentEmail.trim() || !agreedToTerms || !systemCheckPassed) && (
             <p className="text-sm text-muted-foreground mt-2">
               Please complete all requirements above to start the exam
             </p>
