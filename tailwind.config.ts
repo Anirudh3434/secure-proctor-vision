@@ -52,6 +52,16 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				exam: {
+					bg: 'hsl(var(--exam-bg))',
+					surface: 'hsl(var(--exam-surface))',
+					'surface-secondary': 'hsl(var(--exam-surface-secondary))',
+					primary: 'hsl(var(--exam-primary))',
+					secondary: 'hsl(var(--exam-secondary))',
+					warning: 'hsl(var(--exam-warning))',
+					danger: 'hsl(var(--exam-danger))',
+					success: 'hsl(var(--exam-success))'
+				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -62,6 +72,20 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-danger': 'var(--gradient-danger)',
+				'gradient-warning': 'var(--gradient-warning)',
+				'gradient-surface': 'var(--gradient-surface)'
+			},
+			boxShadow: {
+				'primary': 'var(--shadow-primary)',
+				'danger': 'var(--shadow-danger)',
+				'elegant': 'var(--shadow-elegant)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
